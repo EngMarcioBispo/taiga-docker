@@ -52,14 +52,14 @@ services:
     volumes:
       - taiga-db-data:/var/lib/postgresql/data
     networks:
-      - taiga
+      - portainer_default
 
   taiga-back:
     image: taigaio/taiga-back:latest
     environment: *default-back-environment
     volumes: *default-back-volumes
     networks:
-      - taiga
+      - portainer_default
     depends_on:
       taiga-db:
         condition: service_healthy
@@ -74,7 +74,7 @@ services:
     environment: *default-back-environment
     volumes: *default-back-volumes
     networks:
-      - taiga
+      - portainer_default
     depends_on:
       taiga-db:
         condition: service_healthy
@@ -94,7 +94,7 @@ services:
     volumes:
       - taiga-async-rabbitmq-data:/var/lib/rabbitmq
     networks:
-      - taiga
+      - portainer_default
 
   taiga-front:
     image: taigaio/taiga-front:latest
@@ -104,7 +104,7 @@ services:
       TAIGA_SUBPATH: "${SUBPATH}"
       # ...your customizations go here
     networks:
-      - taiga
+      - portainer_default
     # volumes:
     #   - ./conf.json:/usr/share/nginx/html/conf.json
 
@@ -115,7 +115,7 @@ services:
       RABBITMQ_PASS: "${RABBITMQ_PASS}"
       TAIGA_SECRET_KEY: "${SECRET_KEY}"
     networks:
-      - taiga
+      - portainer_default
     depends_on:
       taiga-events-rabbitmq:
         condition: service_started
@@ -131,7 +131,7 @@ services:
     volumes:
       - taiga-events-rabbitmq-data:/var/lib/rabbitmq
     networks:
-      - taiga
+      - portainer_default
 
   taiga-protected:
     image: taigaio/taiga-protected:latest
@@ -139,7 +139,7 @@ services:
       MAX_AGE: "${ATTACHMENTS_MAX_AGE}"
       SECRET_KEY: "${SECRET_KEY}"
     networks:
-      - taiga
+      - portainer_default
 
   taiga-gateway:
     image: nginx:1.19-alpine
@@ -150,12 +150,12 @@ services:
       - taiga-static-data:/taiga/static
       - taiga-media-data:/taiga/media
     networks:
-      - taiga
+      - portainer_default
     depends_on:
       - taiga-front
       - taiga-back
       - taiga-events
-    # Adicionados labels para Traefik:
+    # Labels para Traefik:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.taiga.rule=Host(`tasks.zetacode.app.br`)"
