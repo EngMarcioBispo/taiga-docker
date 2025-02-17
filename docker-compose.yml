@@ -158,7 +158,7 @@ services:
       - taiga-back
       - taiga-events
     ports:
-      - "8081:80" # Ajustando para evitar conflitos com outros serviços na porta 80
+      - "8088:80" # Ajustando para evitar conflitos com outros serviços na porta 80
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.taiga.rule=Host(`tasks.zetacode.app.br`)"
