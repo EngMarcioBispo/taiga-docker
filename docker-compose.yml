@@ -2,18 +2,14 @@
 
 x-environment:
   &default-back-environment
-  # These environment variables will be used by taiga-back and taiga-async.
-  # Database settings
   POSTGRES_DB: "taiga"
   POSTGRES_USER: "${POSTGRES_USER}"
   POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
   POSTGRES_HOST: "taiga-db"
-  # Taiga settings
   TAIGA_SECRET_KEY: "${SECRET_KEY}"
   TAIGA_SITES_SCHEME: "${TAIGA_SCHEME}"
   TAIGA_SITES_DOMAIN: "${TAIGA_DOMAIN}"
   TAIGA_SUBPATH: "${SUBPATH}"
-  # Email settings.
   EMAIL_BACKEND: "django.core.mail.backends.${EMAIL_BACKEND}.EmailBackend"
   DEFAULT_FROM_EMAIL: "${EMAIL_DEFAULT_FROM}"
   EMAIL_USE_TLS: "${EMAIL_USE_TLS}"
@@ -22,19 +18,14 @@ x-environment:
   EMAIL_PORT: "${EMAIL_PORT}"
   EMAIL_HOST_USER: "${EMAIL_HOST_USER}"
   EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD}"
-  # Rabbitmq settings
   RABBITMQ_USER: "${RABBITMQ_USER}"
   RABBITMQ_PASS: "${RABBITMQ_PASS}"
-  # Telemetry settings
   ENABLE_TELEMETRY: "${ENABLE_TELEMETRY}"
-  # ...your customizations go here
 
 x-volumes:
   &default-back-volumes
-  # These volumens will be used by taiga-back and taiga-async.
   - taiga-static-data:/taiga-back/static
   - taiga-media-data:/taiga-back/media
-  # - ./config.py:/taiga-back/settings/config.py
 
 services:
   taiga-db:
@@ -53,6 +44,8 @@ services:
       - taiga-db-data:/var/lib/postgresql/data
     networks:
       - portainer_default
+    ports:
+      - "5433:5432" # Evitando conflito com outros bancos PostgreSQL
 
   taiga-back:
     image: taigaio/taiga-back:latest
@@ -67,6 +60,8 @@ services:
         condition: service_started
       taiga-async-rabbitmq:
         condition: service_started
+    ports:
+      - "8082:8000" # Evitando conflito com outro serviço rodando na porta 8000
 
   taiga-async:
     image: taigaio/taiga-back:latest
@@ -82,6 +77,8 @@ services:
         condition: service_started
       taiga-async-rabbitmq:
         condition: service_started
+    ports:
+      - "8083:8000"
 
   taiga-async-rabbitmq:
     image: rabbitmq:3.8-management-alpine
@@ -95,6 +92,8 @@ services:
       - taiga-async-rabbitmq-data:/var/lib/rabbitmq
     networks:
       - portainer_default
+    ports:
+      - "5673:5672"
 
   taiga-front:
     image: taigaio/taiga-front:latest
@@ -102,11 +101,10 @@ services:
       TAIGA_URL: "${TAIGA_SCHEME}://${TAIGA_DOMAIN}"
       TAIGA_WEBSOCKETS_URL: "${WEBSOCKETS_SCHEME}://${TAIGA_DOMAIN}"
       TAIGA_SUBPATH: "${SUBPATH}"
-      # ...your customizations go here
     networks:
       - portainer_default
-    # volumes:
-    #   - ./conf.json:/usr/share/nginx/html/conf.json
+    ports:
+      - "8084:80" # Evitando conflito com o nginx na porta 80
 
   taiga-events:
     image: taigaio/taiga-events:latest
@@ -119,6 +117,8 @@ services:
     depends_on:
       taiga-events-rabbitmq:
         condition: service_started
+    ports:
+      - "8889:8888"
 
   taiga-events-rabbitmq:
     image: rabbitmq:3.8-management-alpine
@@ -132,6 +132,8 @@ services:
       - taiga-events-rabbitmq-data:/var/lib/rabbitmq
     networks:
       - portainer_default
+    ports:
+      - "5674:5672"
 
   taiga-protected:
     image: taigaio/taiga-protected:latest
@@ -140,11 +142,11 @@ services:
       SECRET_KEY: "${SECRET_KEY}"
     networks:
       - portainer_default
+    ports:
+      - "8004:8003"
 
   taiga-gateway:
     image: nginx:1.19-alpine
-    #ports:
-      #- "9000:80"
     volumes:
       - ./taiga-gateway/:/etc/nginx/conf.d/:ro
       - taiga-static-data:/taiga/static
@@ -155,7 +157,8 @@ services:
       - taiga-front
       - taiga-back
       - taiga-events
-    # Labels para Traefik:
+    ports:
+      - "8081:80" # Ajustando para evitar conflitos com outros serviços na porta 80
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.taiga.rule=Host(`tasks.zetacode.app.br`)"
