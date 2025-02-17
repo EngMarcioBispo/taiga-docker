@@ -172,5 +172,5 @@ volumes:
   taiga-events-rabbitmq-data:
 
 networks:
-  taiga:
+  portainer_default:
     external: true
